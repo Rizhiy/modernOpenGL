@@ -104,7 +104,7 @@ int main(){
 
 	GLint offsetLocation = glGetUniformLocation(ourShader.Program, "offset");
 	ourShader.Use();
-	glUniform4f(offsetLocation, 0.4f, 0.0f, 0.0f, 0.0f);
+	glUniform4f(offsetLocation, 0.0f, 0.0f, 0.0f, 0.0f);
 	//3. Now draw the object
 	//main loop
 	while (!glfwWindowShouldClose(window))
