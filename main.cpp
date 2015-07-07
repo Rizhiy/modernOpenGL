@@ -8,6 +8,7 @@
 #include "main.h"
 #include "Utilities.h"
 #include "Shader.h"
+#include <SOIL/SOIL.h>
 
 //global variables
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -49,14 +50,14 @@ int main(){
 
 	//triangle
 	GLfloat vertices[] = {
-		//Position      //Color
-		-0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
-		0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f,  0.0f, 0.0f, 1.0f,
+		//Position				//Color					//Texture
+		-0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f,		1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f,		0.0f, 0.0f, 1.0f,		1.0f, 1.0f,
 
-		-0.5f, 0.5f, 0.0f,  0.0f, 1.0f, 1.0f,
-		-0.5f, -0.4f,0.0f,  1.0f, 0.0f, 1.0f,
-		0.4f, 0.5f, 0.0f,  1.0f, 1.0f, 0.0f
+		-0.5f, 0.5f, 0.0f,		0.0f, 1.0f, 1.0f,		0.0f, 1.0f,
+		-0.5f, -0.4f,0.0f,		1.0f, 0.0f, 1.0f,		0.0f, 0.1f,
+		0.4f, 0.5f, 0.0f,		1.0f, 1.0f, 0.0f,		0.9f, 1.0f
 	};
 
 	//rectangle
@@ -89,11 +90,14 @@ int main(){
 	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	//Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 	//Color
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
+	//Texture
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
 
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -105,6 +109,52 @@ int main(){
 	GLint offsetLocation = glGetUniformLocation(ourShader.Program, "offset");
 	ourShader.Use();
 	glUniform4f(offsetLocation, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	GLfloat texCoords[] = {
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f
+	};
+
+	GLuint textures[2];
+	glGenTextures(2, textures);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+	//if GL_CLAMP_TO_BORDER is used then we also need to specify the border color
+	//float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	int width[2], height[2];
+	unsigned char* image[2];
+	image[0] = SOIL_load_image("container.jpg", &width[0], &height[0], 0, SOIL_LOAD_RGB);
+	image[1] = SOIL_load_image("awesomeface.png", &width[1], &height[1], 0, SOIL_LOAD_RGB);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width[0], height[0], 0, GL_RGB, GL_UNSIGNED_BYTE, image[0]);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image[0]);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width[1], height[1], 0, GL_RGB, GL_UNSIGNED_BYTE, image[1]);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image[1]);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture1"), 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture2"), 1);
+
 	//3. Now draw the object
 	//main loop
 	while (!glfwWindowShouldClose(window))
@@ -122,7 +172,6 @@ int main(){
 		//glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
 		//3. Now draw the object
-	
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
