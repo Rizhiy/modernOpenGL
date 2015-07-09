@@ -3,17 +3,23 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <SOIL/SOIL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#define _USE_MATH_DEFINES //access math.h constants
 #include <math.h>
 #include "main.h"
 #include "Utilities.h"
 #include "Shader.h"
-#include <SOIL/SOIL.h>
+
 
 //global variables
 const GLuint WIDTH = 800, HEIGHT = 600;
 const std::string vertexShaderFilePath = "vs.glsl";
 const std::string fragmentShaderFilePath = "fs.glsl";
+float mixValue = 0.5f;
 
 int main(){
 
@@ -155,10 +161,20 @@ int main(){
 	glBindTexture(GL_TEXTURE_2D, textures[1]);
 	glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture2"), 1);
 
+	//transformation matrix
+	glm::mat4 trans;
+	trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+
+	//placeholder for checking time difference
+	GLfloat previousTime = (GLfloat)glfwGetTime();
+
 	//3. Now draw the object
 	//main loop
 	while (!glfwWindowShouldClose(window))
 	{
+		//work out time difference since last frame
+		GLfloat timeDiff = (GLfloat)glfwGetTime() - previousTime;
+		previousTime = (GLfloat)glfwGetTime();
 		//check and call events
 		glfwPollEvents();
 
@@ -166,10 +182,15 @@ int main(){
 		glClearColor(0.2f, 1.0f, 0.4f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		//rotation
+		trans = glm::rotate(trans, (GLfloat)M_PI / 10 * timeDiff, glm::vec3(0.0f, 0.0f, 1.0f));
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(trans));
+
 		//2. Use our shader program when we want to render an object
 		ourShader.Use();
 		//updateColor(&greenValue);
 		//glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(ourShader.Program, "mixValue"), mixValue);
 
 		//3. Now draw the object
 		glBindVertexArray(VAO);
@@ -190,7 +211,17 @@ int main(){
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode){
+	//close the window upon ESC
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, GL_TRUE);
+	//change mixValue with arrows
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+		mixValue += 0.1f;
+		if (mixValue >= 1.0f) mixValue = 1.0f;
+	}
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+		mixValue -= 0.1f;
+		if (mixValue <= 0.0f) mixValue = 0.0f;
+	}
 } 
 
 void updateColor(GLfloat* greenColor){
