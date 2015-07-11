@@ -135,24 +135,9 @@ int main(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	int width[2], height[2];
-	unsigned char* image[2];
-	image[0] = SOIL_load_image("container.jpg", &width[0], &height[0], 0, SOIL_LOAD_RGB);
-	image[1] = SOIL_load_image("awesomeface.png", &width[1], &height[1], 0, SOIL_LOAD_RGB);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textures[0]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width[0], height[0], 0, GL_RGB, GL_UNSIGNED_BYTE, image[0]);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image[0]);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, textures[1]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width[1], height[1], 0, GL_RGB, GL_UNSIGNED_BYTE, image[1]);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image[1]);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	bindTexture(GL_TEXTURE0, GL_TEXTURE_2D, "containger.jpg", textures[0]);
+	bindTexture(GL_TEXTURE1, GL_TEXTURE_2D, "awesomeface.png", textures[1]);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textures[0]);
@@ -226,4 +211,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void updateColor(GLfloat* greenColor){
 	*greenColor = (sin(glfwGetTime())/2)+0.5;
+}
+
+void bindTexture(GLenum textureNumber, GLenum textureType, const char* texturePath, GLuint textureObject){
+	int width, height;
+	unsigned char* image;
+	image = SOIL_load_image(texturePath, &width, &height, 0, SOIL_LOAD_RGB);
+
+	glActiveTexture(textureNumber);
+	glBindTexture(textureType, textureObject);
+	glTexImage2D(textureType, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(textureType);
+	SOIL_free_image_data(image);
+	glBindTexture(textureType, 0);
+
 }
