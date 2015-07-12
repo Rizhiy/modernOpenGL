@@ -112,9 +112,8 @@ int main(){
 	//GLfloat greenValue;
 	//GLint vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
 
-	GLint offsetLocation = glGetUniformLocation(ourShader.Program, "offset");
 	ourShader.Use();
-	glUniform4f(offsetLocation, 0.0f, 0.0f, 0.0f, 0.0f);
+	glUniform4f(glGetUniformLocation(ourShader.Program, "offset"), 0.0f, 0.0f, 0.0f, 0.0f);
 
 	GLfloat texCoords[] = {
 		0.0f, 0.0f,
@@ -136,7 +135,7 @@ int main(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 
-	bindTexture(GL_TEXTURE0, GL_TEXTURE_2D, "containger.jpg", textures[0]);
+	bindTexture(GL_TEXTURE0, GL_TEXTURE_2D, "container.jpg", textures[0]);
 	bindTexture(GL_TEXTURE1, GL_TEXTURE_2D, "awesomeface.png", textures[1]);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -146,12 +145,11 @@ int main(){
 	glBindTexture(GL_TEXTURE_2D, textures[1]);
 	glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture2"), 1);
 
-	//transformation matrix
-	glm::mat4 trans;
-	trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
 
 	//placeholder for checking time difference
 	GLfloat previousTime = (GLfloat)glfwGetTime();
+	//total time elapsed
+	GLfloat totalTime = 0.0f;
 
 	//3. Now draw the object
 	//main loop
@@ -159,6 +157,7 @@ int main(){
 	{
 		//work out time difference since last frame
 		GLfloat timeDiff = (GLfloat)glfwGetTime() - previousTime;
+		totalTime += timeDiff;
 		previousTime = (GLfloat)glfwGetTime();
 		//check and call events
 		glfwPollEvents();
@@ -167,8 +166,11 @@ int main(){
 		glClearColor(0.2f, 1.0f, 0.4f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		//rotation
-		trans = glm::rotate(trans, (GLfloat)M_PI / 10 * timeDiff, glm::vec3(0.0f, 0.0f, 1.0f));
+		//transformation
+		glm::mat4 trans;
+		trans = glm::rotate(trans, (GLfloat)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
+		trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
+		trans = glm::rotate(trans, -(GLfloat)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(trans));
 
 		//2. Use our shader program when we want to render an object
@@ -224,5 +226,4 @@ void bindTexture(GLenum textureNumber, GLenum textureType, const char* texturePa
 	glGenerateMipmap(textureType);
 	SOIL_free_image_data(image);
 	glBindTexture(textureType, 0);
-
 }
