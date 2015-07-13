@@ -146,7 +146,7 @@ int main(){
 	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(1);
 	//Texture
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 
@@ -195,19 +195,20 @@ int main(){
 	//total time elapsed
 	GLfloat totalTime = 0.0f;
 
-	glm::mat4 model;
-	model = glm::rotate(model, -(float)M_PI/3.3f, glm::vec3(1.0f, 0.0f, 0.0f));
+	glEnable(GL_DEPTH_TEST);
 
-	glm::mat4 view;
-	// Note that we're translating the scene in the reverse direction of where we want to move
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-	glm::mat4 projection;
-	projection = glm::perspective((float)M_PI_4, (float)(WIDTH / HEIGHT), 0.1f, 100.0f);
-
-	glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(2.0f, 5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f, 3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f, 2.0f, -2.5f),
+		glm::vec3(1.5f, 0.2f, -1.5f),
+		glm::vec3(-1.3f, 1.0f, -1.5f)
+	};
 
 	//3. Now draw the object
 	//main loop
@@ -217,19 +218,34 @@ int main(){
 		GLfloat timeDiff = (GLfloat)glfwGetTime() - previousTime;
 		totalTime += timeDiff;
 		previousTime = (GLfloat)glfwGetTime();
-		//check and call eventss
+		//check and call events
 		glfwPollEvents();
 
 		//do the rendering
 		glClearColor(0.2f, 1.0f, 0.4f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//transformation
 		glm::mat4 trans;
-		trans = glm::rotate(trans, (GLfloat)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
+		trans = glm::rotate(trans, (float)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
 		trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
-		trans = glm::rotate(trans, -(GLfloat)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
+		trans = glm::rotate(trans, -(float)M_PI * totalTime, glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "transform"), 1, GL_FALSE, glm::value_ptr(trans));
+
+		glm::mat4 model;
+		model = glm::rotate(model, -(float)M_PI / 3.3f, glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, (float)M_PI/5*totalTime, glm::vec3(0.5f, 1.0f, 0.0f));
+
+		glm::mat4 view;
+		// Note that we're translating the scene in the reverse direction of where we want to move
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+		glm::mat4 projection;
+		projection = glm::perspective((float)M_PI_2, (float)WIDTH/HEIGHT, 0.1f, 100.0f);
+
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 		//2. Use our shader program when we want to render an object
 		ourShader.Use();
@@ -239,10 +255,26 @@ int main(){
 
 		//3. Now draw the object
 		glBindVertexArray(VAO);
+		for (GLuint i = 0; i < 10; i++)
+		{
+			glm::mat4 model;
+			model = glm::translate(model, cubePositions[i]);
+			if (i % 3 == 0){
+				model = glm::rotate(model, (float)M_PI / 5 * totalTime, glm::vec3(0.5f, 1.0f, 0.0f));
+			}
+			GLfloat angle = 20.0f * i;
+			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+			glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		glBindVertexArray(0);
+		/*
+		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-
+		*/
 		glfwSwapBuffers(window);
 	}
 
