@@ -13,6 +13,7 @@
 #include "main.h"
 #include "Utilities.h"
 #include "Shader.h"
+#include "Camera.h"
 
 
 //global variables
@@ -20,6 +21,17 @@ const GLuint WIDTH = 800, HEIGHT = 600;
 const std::string vertexShaderFilePath = "vs.glsl";
 const std::string fragmentShaderFilePath = "fs.glsl";
 float mixValue = 0.5f;
+float cameraSpeed = 0.0f;
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+bool keys[1024];
+GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
+GLfloat lastFrame = 0.0f;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+GLfloat lastX = WIDTH/2, lastY = HEIGHT/2;
+GLfloat yaw=0.0f, pitch=0.0f;
+bool firstMouse = true;
 
 int main(){
 
@@ -38,6 +50,9 @@ int main(){
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	//initialise GLEW
 	glewExperimental = GL_TRUE;
@@ -215,11 +230,14 @@ int main(){
 	while (!glfwWindowShouldClose(window))
 	{
 		//work out time difference since last frame
-		GLfloat timeDiff = (GLfloat)glfwGetTime() - previousTime;
-		totalTime += timeDiff;
-		previousTime = (GLfloat)glfwGetTime();
+		GLfloat currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+		cameraSpeed = 5.0f * deltaTime;
+		totalTime += deltaTime;
 		//check and call events
 		glfwPollEvents();
+		do_movement();
 
 		//do the rendering
 		glClearColor(0.2f, 1.0f, 0.4f, 1.0f);
@@ -237,11 +255,11 @@ int main(){
 		model = glm::rotate(model, (float)M_PI/5*totalTime, glm::vec3(0.5f, 1.0f, 0.0f));
 
 		glm::mat4 view;
-		// Note that we're translating the scene in the reverse direction of where we want to move
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+		view = camera.GetViewMatrix();
 
 		glm::mat4 projection;
-		projection = glm::perspective((float)M_PI_2, (float)WIDTH/HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(camera.Zoom, (float)WIDTH/HEIGHT, 0.1f, 100.0f);
 
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(glGetUniformLocation(ourShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -299,7 +317,29 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		mixValue -= 0.1f;
 		if (mixValue <= 0.0f) mixValue = 0.0f;
 	}
+	if (action == GLFW_PRESS)
+		keys[key] = true;
+	else if (action == GLFW_RELEASE)
+		keys[key] = false;
 } 
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	GLfloat xoffset = xpos - lastX;
+	GLfloat yoffset = lastY - ypos;  // Reversed since y-coordinates go from bottom to left
+
+	lastX = xpos;
+	lastY = ypos;
+
+	camera.ProcessMouseMovement(xoffset, yoffset);
+}
 
 void updateColor(GLfloat* greenColor){
 	*greenColor = (sin(glfwGetTime())/2)+0.5;
@@ -316,4 +356,23 @@ void bindTexture(GLenum textureNumber, GLenum textureType, const char* texturePa
 	glGenerateMipmap(textureType);
 	SOIL_free_image_data(image);
 	glBindTexture(textureType, 0);
+}
+
+// Moves/alters the camera positions based on user input
+void do_movement()
+{
+	// Camera controls
+	if (keys[GLFW_KEY_W])
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+	if (keys[GLFW_KEY_S])
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	if (keys[GLFW_KEY_A])
+		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (keys[GLFW_KEY_D])
+		camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	camera.ProcessMouseScroll(yoffset);
 }
